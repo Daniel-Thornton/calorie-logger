@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calorie Logger</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+
+        <header>
+            <h1>Calorie Logger</h1>
+            <button id="settings-btn" class="icon-btn" aria-label="Settings" title="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Settings">
+            <div class="modal-content">
+                <h2>Settings</h2>
+                <label for="tunnel-url">
+                    Cloudflare Tunnel URL
+                    <span class="label-hint">Paste the URL from your tunnel session at home</span>
+                    <input type="url" id="tunnel-url" placeholder="https://xxxx-xxxx.trycloudflare.com" autocomplete="off" spellcheck="false">
+                </label>
+                <label for="model-name">
+                    Ollama Model
+                    <span class="label-hint">Must be pulled on your home PC</span>
+                    <input type="text" id="model-name" placeholder="llama3.2" autocomplete="off" spellcheck="false">
+                </label>
+                <div class="modal-actions">
+                    <button id="save-settings" class="btn primary">Save</button>
+                    <button id="close-settings" class="btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date + daily total bar -->
+        <div class="date-bar">
+            <span id="current-date"></span>
+            <span id="total-calories" class="total-display">0 kcal</span>
+        </div>
+
+        <!-- Error banner (injected by JS when needed) -->
+        <div id="error-banner" class="error-banner hidden"></div>
+
+        <!-- Input section -->
+        <section class="input-section">
+            <div class="voice-row">
+                <button id="voice-btn" class="voice-btn" aria-label="Record voice input" title="Record voice">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                </button>
+                <span id="voice-status">Tap to speak</span>
+            </div>
+            <textarea id="meal-input" placeholder="Describe what you ate — e.g. two scrambled eggs, toast with butter, and a coffee with milk" rows="4" aria-label="Meal description"></textarea>
+            <button id="log-btn" class="btn primary full-width">Log Meal</button>
+        </section>
+
+        <!-- Loading state -->
+        <div id="loading" class="loading hidden" aria-live="polite">
+            <div class="spinner"></div>
+            <span>Estimating calories...</span>
+        </div>
+
+        <!-- Daily log -->
+        <section class="log-section">
+            <h2 class="section-label">Today's Log</h2>
+            <div id="log-entries"></div>
+        </section>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
