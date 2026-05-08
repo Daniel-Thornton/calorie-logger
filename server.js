@@ -57,7 +57,11 @@ function proxyToOllama(req, res) {
     };
 
     const proxy = http.request(options, ollamaRes => {
-        res.writeHead(ollamaRes.statusCode, { ...ollamaRes.headers, ...CORS_HEADERS });
+        // Strip any CORS headers Ollama sends — we add our own to avoid duplicates
+        const headers = Object.fromEntries(
+            Object.entries(ollamaRes.headers).filter(([k]) => !k.toLowerCase().startsWith('access-control-'))
+        );
+        res.writeHead(ollamaRes.statusCode, { ...headers, ...CORS_HEADERS });
         ollamaRes.pipe(res);
     });
 
