@@ -17,7 +17,10 @@ Rules:
 - Estimate based on typical serving sizes when quantities are not specified.
 - Keep item names short and clear.
 - total_calories must equal the sum of all item calories.
-- Respond with ONLY the JSON object, nothing else.`;
+- Respond with ONLY the JSON object, nothing else.
+
+Known calorie values:
+Huel drink = 400`;
 
 // ── DOM references ──
 
