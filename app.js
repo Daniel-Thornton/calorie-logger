@@ -39,6 +39,7 @@ const tunnelUrlInput = document.getElementById('tunnel-url');
 const modelNameInput = document.getElementById('model-name');
 const saveSettingsBtn = document.getElementById('save-settings');
 const closeSettingsBtn = document.getElementById('close-settings');
+const statsContent = document.getElementById('stats-content');
 
 // ── State ──
 
@@ -87,9 +88,11 @@ function setupEventListeners() {
 
     logEntriesEl.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.log-delete');
-        if (deleteBtn) {
-            deleteLogEntry(Number(deleteBtn.dataset.id));
-        }
+        if (deleteBtn) deleteLogEntry(Number(deleteBtn.dataset.id));
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
 }
 
@@ -102,6 +105,18 @@ function openSettings() {
 
 function closeSettings() {
     settingsModal.classList.add('hidden');
+}
+
+// ── Tabs ──
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+        b.setAttribute('aria-selected', b.dataset.tab === tab);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+    document.getElementById(`tab-${tab}`).classList.remove('hidden');
+    if (tab === 'stats') renderStats();
 }
 
 // ── Speech Recognition ──
@@ -158,7 +173,6 @@ async function handleLogMeal() {
         showError('Please describe what you ate first.');
         return;
     }
-
     if (!settings.tunnelUrl) {
         showError('No tunnel URL set. Open Settings and paste your Cloudflare tunnel URL.');
         return;
@@ -209,8 +223,6 @@ async function callOllama(mealDescription) {
 
     const data = await response.json();
     const raw = data?.message?.content ?? '';
-
-    // Strip accidental markdown code fences some models add despite instructions
     const cleaned = raw.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
 
     let parsed;
@@ -269,7 +281,7 @@ function deleteLogEntry(id) {
     renderLog();
 }
 
-// ── Rendering ──
+// ── Today rendering ──
 
 function renderLog() {
     const log = loadLog();
@@ -304,6 +316,145 @@ function renderLog() {
     `).join('');
 }
 
+// ── Stats rendering ──
+
+function renderStats() {
+    const log = loadLog();
+
+    const dailyTotals = Object.entries(log)
+        .map(([date, entries]) => ({
+            date,
+            total: entries.reduce((s, e) => s + e.total, 0),
+            meals: entries.length
+        }))
+        .filter(d => d.total > 0)
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (dailyTotals.length === 0) {
+        statsContent.innerHTML = '<div class="stats-empty">No data yet — start logging meals to see statistics.</div>';
+        return;
+    }
+
+    const avg = Math.round(dailyTotals.reduce((s, d) => s + d.total, 0) / dailyTotals.length);
+    const highest = dailyTotals.reduce((m, d) => d.total > m.total ? d : m);
+    const lowest = dailyTotals.reduce((m, d) => d.total < m.total ? d : m);
+    const streak = calcStreak(dailyTotals.map(d => d.date));
+
+    statsContent.innerHTML = `
+        <div class="stat-cards">
+            <div class="stat-card">
+                <div class="stat-card-value">${avg.toLocaleString()}</div>
+                <div class="stat-card-label">Avg kcal / day</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-value">${dailyTotals.length}</div>
+                <div class="stat-card-label">Days logged</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-value">${highest.total.toLocaleString()}</div>
+                <div class="stat-card-label">Highest day</div>
+                <div class="stat-card-sub">${formatShortDate(highest.date)}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-value">${lowest.total.toLocaleString()}</div>
+                <div class="stat-card-label">Lowest day</div>
+                <div class="stat-card-sub">${formatShortDate(lowest.date)}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-value">${streak}</div>
+                <div class="stat-card-label">Day streak</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-value">${(dailyTotals.reduce((s, d) => s + d.total, 0) / 1000).toFixed(0)}k</div>
+                <div class="stat-card-label">Total kcal logged</div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3>Last ${Math.min(dailyTotals.length, 14)} days</h3>
+            <div class="chart-wrap">
+                ${buildChart(dailyTotals, avg)}
+            </div>
+        </div>
+
+        <div class="history-card">
+            <h3>All days</h3>
+            ${[...dailyTotals].reverse().map(d => `
+                <div class="history-row">
+                    <span class="history-date">${formatShortDate(d.date)}</span>
+                    <span class="history-meals">${d.meals} meal${d.meals !== 1 ? 's' : ''}</span>
+                    <span class="history-kcal">${d.total.toLocaleString()} kcal</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function buildChart(dailyTotals, avg) {
+    const recent = dailyTotals.slice(-14);
+    const svgW = 540;
+    const svgH = 190;
+    const padL = 8;
+    const padR = 8;
+    const padTop = 24;
+    const padBottom = 32;
+    const barAreaH = svgH - padTop - padBottom;
+    const barAreaW = svgW - padL - padR;
+    const slot = barAreaW / recent.length;
+    const barW = Math.max(Math.floor(slot * 0.6), 4);
+    const maxVal = Math.max(...recent.map(d => d.total), avg * 1.1);
+
+    const avgY = padTop + barAreaH - Math.round((avg / maxVal) * barAreaH);
+
+    const bars = recent.map((d, i) => {
+        const barH = Math.max(Math.round((d.total / maxVal) * barAreaH), 2);
+        const x = padL + i * slot + (slot - barW) / 2;
+        const y = padTop + barAreaH - barH;
+        const labelDate = `${parseInt(d.date.slice(8))}/${parseInt(d.date.slice(5, 7))}`;
+        const isToday = d.date === getTodayKey();
+
+        return `
+            <rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3"
+                  fill="${isToday ? 'var(--green-dark)' : 'var(--green)'}" opacity="${isToday ? '1' : '0.75'}"/>
+            <text x="${x + barW / 2}" y="${y - 5}" text-anchor="middle"
+                  font-size="9" fill="var(--text-muted)" font-family="inherit">${d.total >= 1000 ? Math.round(d.total / 100) / 10 + 'k' : d.total}</text>
+            <text x="${x + barW / 2}" y="${svgH - padBottom + 14}" text-anchor="middle"
+                  font-size="9" fill="${isToday ? 'var(--green-dark)' : 'var(--text-muted)'}"
+                  font-weight="${isToday ? '600' : '400'}" font-family="inherit">${labelDate}</text>
+        `;
+    });
+
+    const avgLine = `
+        <line x1="${padL}" y1="${avgY}" x2="${svgW - padR}" y2="${avgY}"
+              stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"/>
+        <text x="${svgW - padR - 2}" y="${avgY - 4}" text-anchor="end"
+              font-size="8" fill="var(--text-muted)" font-family="inherit">avg</text>
+    `;
+
+    return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;display:block;overflow:visible">
+        ${avgLine}
+        ${bars.join('')}
+    </svg>`;
+}
+
+function calcStreak(sortedDates) {
+    if (sortedDates.length === 0) return 0;
+    const today = getTodayKey();
+    const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    const last = sortedDates[sortedDates.length - 1];
+    if (last !== today && last !== yesterday) return 0;
+
+    let streak = 1;
+    for (let i = sortedDates.length - 2; i >= 0; i--) {
+        const curr = new Date(sortedDates[i + 1]);
+        const prev = new Date(sortedDates[i]);
+        const diff = (curr - prev) / 864e5;
+        if (diff === 1) streak++;
+        else break;
+    }
+    return streak;
+}
+
 // ── UI helpers ──
 
 function setLoading(on) {
@@ -325,6 +476,13 @@ function clearError() {
 function formatDate(date) {
     return date.toLocaleDateString('en-GB', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+}
+
+function formatShortDate(isoDate) {
+    const [y, m, d] = isoDate.split('-');
+    return new Date(y, m - 1, d).toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'short', year: 'numeric'
     });
 }
 

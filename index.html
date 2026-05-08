@@ -40,43 +40,56 @@
             </div>
         </div>
 
-        <!-- Date + daily total bar -->
-        <div class="date-bar">
-            <span id="current-date"></span>
-            <span id="total-calories" class="total-display">0 kcal</span>
-        </div>
+        <!-- Tab navigation -->
+        <nav class="tab-nav" role="tablist">
+            <button class="tab-btn active" data-tab="today" role="tab" aria-selected="true">Today</button>
+            <button class="tab-btn" data-tab="stats" role="tab" aria-selected="false">Statistics</button>
+        </nav>
 
-        <!-- Error banner (injected by JS when needed) -->
-        <div id="error-banner" class="error-banner hidden"></div>
+        <!-- ── TODAY TAB ── -->
+        <div id="tab-today" class="tab-panel">
 
-        <!-- Input section -->
-        <section class="input-section">
-            <div class="voice-row">
-                <button id="voice-btn" class="voice-btn" aria-label="Record voice input" title="Record voice">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                    </svg>
-                </button>
-                <span id="voice-status">Tap to speak</span>
+            <div class="date-bar">
+                <span id="current-date"></span>
+                <span id="total-calories" class="total-display">0 kcal</span>
             </div>
-            <textarea id="meal-input" placeholder="Describe what you ate — e.g. two scrambled eggs, toast with butter, and a coffee with milk" rows="4" aria-label="Meal description"></textarea>
-            <button id="log-btn" class="btn primary full-width">Log Meal</button>
-        </section>
 
-        <!-- Loading state -->
-        <div id="loading" class="loading hidden" aria-live="polite">
-            <div class="spinner"></div>
-            <span>Estimating calories...</span>
+            <div id="error-banner" class="error-banner hidden"></div>
+
+            <section class="input-section">
+                <div class="voice-row">
+                    <button id="voice-btn" class="voice-btn" aria-label="Record voice input" title="Record voice">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </button>
+                    <span id="voice-status">Tap to speak</span>
+                </div>
+                <textarea id="meal-input" placeholder="Describe what you ate — e.g. two scrambled eggs, toast with butter, and a coffee with milk" rows="4" aria-label="Meal description"></textarea>
+                <button id="log-btn" class="btn primary full-width">Log Meal</button>
+            </section>
+
+            <div id="loading" class="loading hidden" aria-live="polite">
+                <div class="spinner"></div>
+                <span>Estimating calories...</span>
+            </div>
+
+            <section class="log-section">
+                <h2 class="section-label">Today's Log</h2>
+                <div id="log-entries"></div>
+            </section>
+
         </div>
 
-        <!-- Daily log -->
-        <section class="log-section">
-            <h2 class="section-label">Today's Log</h2>
-            <div id="log-entries"></div>
-        </section>
+        <!-- ── STATS TAB ── -->
+        <div id="tab-stats" class="tab-panel hidden">
+
+            <div id="stats-content"></div>
+
+        </div>
 
     </div>
 

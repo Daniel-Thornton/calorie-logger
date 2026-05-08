@@ -434,3 +434,154 @@ textarea {
     font-style: italic;
     margin-top: 8px;
 }
+
+/* ── Tabs ── */
+
+.tab-nav {
+    display: flex;
+    gap: 4px;
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    font-size: 0.9rem;
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.tab-btn:hover {
+    color: var(--text);
+}
+
+.tab-btn.active {
+    background: var(--green);
+    color: #fff;
+}
+
+.tab-panel.hidden {
+    display: none;
+}
+
+/* ── Stats ── */
+
+.stat-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.stat-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+}
+
+.stat-card-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--green-dark);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+}
+
+.stat-card-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.stat-card-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.chart-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+}
+
+.chart-card h3 {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.chart-wrap {
+    overflow: hidden;
+}
+
+.history-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.history-card h3 {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.history-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+
+.history-row:first-of-type {
+    border-top: none;
+}
+
+.history-date {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.history-kcal {
+    font-weight: 600;
+    color: var(--green-dark);
+}
+
+.history-meals {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+.stats-empty {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 48px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    box-shadow: var(--shadow);
+}
