@@ -435,6 +435,70 @@ textarea {
     margin-top: 8px;
 }
 
+/* ── Streak ── */
+
+.streak-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: var(--radius);
+    padding: 13px 18px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    font-size: 0.9rem;
+}
+
+.streak-bar.state-active {
+    background: var(--green-light);
+    border: 1px solid #a5d6a7;
+}
+
+.streak-bar.state-risk {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+}
+
+.streak-bar.state-none {
+    background: var(--card);
+    border: 1px solid var(--border);
+}
+
+.streak-count {
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+.state-active .streak-count { color: var(--green-dark); }
+.state-risk .streak-count   { color: #e65100; }
+.state-none .streak-count   { color: var(--text-muted); }
+
+.streak-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.streak-title {
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+
+.state-active .streak-title { color: var(--green-dark); }
+.state-risk .streak-title   { color: #e65100; }
+.state-none .streak-title   { color: var(--text-muted); }
+
+.streak-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.state-risk .streak-sub {
+    color: #bf360c;
+    font-weight: 500;
+}
+
 /* ── Tabs ── */
 
 .tab-nav {

@@ -40,6 +40,7 @@ const modelNameInput = document.getElementById('model-name');
 const saveSettingsBtn = document.getElementById('save-settings');
 const closeSettingsBtn = document.getElementById('close-settings');
 const statsContent = document.getElementById('stats-content');
+const streakDisplay = document.getElementById('streak-display');
 
 // ── State ──
 
@@ -281,9 +282,58 @@ function deleteLogEntry(id) {
     renderLog();
 }
 
+// ── Streak ──
+
+function renderStreak() {
+    const log = loadLog();
+    const today = getTodayKey();
+    const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+
+    const sortedDates = Object.keys(log)
+        .filter(d => log[d].length > 0 && log[d].some(e => e.total > 0))
+        .sort();
+
+    const streak = calcStreak(sortedDates);
+    const loggedToday = sortedDates.includes(today);
+    const loggedYesterday = sortedDates.includes(yesterday);
+    const hasStreak = streak > 0;
+
+    let state, title, sub;
+
+    if (loggedToday && hasStreak) {
+        state = 'active';
+        title = `${streak} day streak`;
+        sub = streak === 1 ? 'Logged today — come back tomorrow!' : 'Logged today — keep it up!';
+    } else if (!loggedToday && loggedYesterday && hasStreak) {
+        state = 'risk';
+        title = `${streak} day streak at risk`;
+        sub = 'Log a meal today before midnight to keep it going!';
+    } else if (!loggedToday && hasStreak) {
+        state = 'none';
+        title = 'Streak ended';
+        sub = `Best was ${streak} days. Start a new one by logging today.`;
+    } else {
+        state = 'none';
+        title = '0 day streak';
+        sub = 'Log every day to build your streak.';
+    }
+
+    streakDisplay.innerHTML = `
+        <div class="streak-bar state-${state}">
+            <span class="streak-count">${loggedToday && hasStreak ? streak : (state === 'risk' ? streak : 0)}</span>
+            <div class="streak-text">
+                <span class="streak-title">${escapeHtml(title)}</span>
+                <span class="streak-sub">${escapeHtml(sub)}</span>
+            </div>
+        </div>
+    `;
+}
+
 // ── Today rendering ──
 
 function renderLog() {
+    renderStreak();
+
     const log = loadLog();
     const today = getTodayKey();
     const entries = log[today] || [];
