@@ -24,49 +24,46 @@ Huel drink = 400`;
 
 // ── DOM references ──
 
-const voiceBtn = document.getElementById('voice-btn');
-const voiceStatus = document.getElementById('voice-status');
-const mealInput = document.getElementById('meal-input');
-const logBtn = document.getElementById('log-btn');
-const loadingEl = document.getElementById('loading');
-const logEntriesEl = document.getElementById('log-entries');
-const totalCaloriesEl = document.getElementById('total-calories');
-const currentDateEl = document.getElementById('current-date');
-const errorBanner = document.getElementById('error-banner');
-const settingsBtn = document.getElementById('settings-btn');
-const settingsModal = document.getElementById('settings-modal');
+const voiceBtn       = document.getElementById('voice-btn');
+const voiceStatus    = document.getElementById('voice-status');
+const mealInput      = document.getElementById('meal-input');
+const logBtn         = document.getElementById('log-btn');
+const loadingEl      = document.getElementById('loading');
+const logEntriesEl   = document.getElementById('log-entries');
+const totalCaloriesEl= document.getElementById('total-calories');
+const currentDateEl  = document.getElementById('current-date');
+const errorBanner    = document.getElementById('error-banner');
+const settingsBtn    = document.getElementById('settings-btn');
+const settingsModal  = document.getElementById('settings-modal');
 const tunnelUrlInput = document.getElementById('tunnel-url');
 const modelNameInput = document.getElementById('model-name');
-const saveSettingsBtn = document.getElementById('save-settings');
-const closeSettingsBtn = document.getElementById('close-settings');
-const statsContent = document.getElementById('stats-content');
-const streakDisplay = document.getElementById('streak-display');
+const saveSettingsBtn= document.getElementById('save-settings');
+const closeSettingsBtn=document.getElementById('close-settings');
+const statsContent   = document.getElementById('stats-content');
+const streakDisplay  = document.getElementById('streak-display');
 
 // ── State ──
 
-let settings = loadSettings();
+let settings    = loadSettings();
 let recognition = null;
 let isRecording = false;
 
 // ── Boot ──
 
-function init() {
+async function init() {
     currentDateEl.textContent = formatDate(new Date());
     tunnelUrlInput.value = settings.tunnelUrl || '';
     modelNameInput.value = settings.model || 'llama3.2';
-    renderLog();
     setupSpeechRecognition();
     setupEventListeners();
+    await refreshView();
 }
 
 // ── Settings ──
 
 function loadSettings() {
-    try {
-        return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-    } catch {
-        return {};
-    }
+    try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; }
+    catch { return {}; }
 }
 
 function persistSettings() {
@@ -81,15 +78,15 @@ function setupEventListeners() {
     settingsBtn.addEventListener('click', openSettings);
     saveSettingsBtn.addEventListener('click', () => { persistSettings(); closeSettings(); });
     closeSettingsBtn.addEventListener('click', closeSettings);
-    settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSettings(); });
+    settingsModal.addEventListener('click', e => { if (e.target === settingsModal) closeSettings(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
 
     voiceBtn.addEventListener('click', toggleRecording);
     logBtn.addEventListener('click', handleLogMeal);
 
-    logEntriesEl.addEventListener('click', (e) => {
-        const deleteBtn = e.target.closest('.log-delete');
-        if (deleteBtn) deleteLogEntry(Number(deleteBtn.dataset.id));
+    logEntriesEl.addEventListener('click', async e => {
+        const btn = e.target.closest('.log-delete');
+        if (btn) await deleteLogEntry(getTodayKey(), Number(btn.dataset.id));
     });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -120,33 +117,31 @@ function switchTab(tab) {
     if (tab === 'stats') renderStats();
 }
 
-// ── Speech Recognition ──
+// ── Speech recognition ──
 
 function setupSpeechRecognition() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+    const w  = /** @type {any} */ (window);
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SR) {
         voiceStatus.textContent = 'Voice input not supported in this browser (try Chrome)';
         voiceBtn.disabled = true;
         return;
     }
 
-    recognition = new SpeechRecognition();
+    recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    recognition.addEventListener('result', (e) => {
-        const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
-        mealInput.value = transcript;
+    recognition.addEventListener('result', e => {
+        mealInput.value = Array.from(e.results).map(r => r[0].transcript).join('');
     });
-
     recognition.addEventListener('end', () => {
         isRecording = false;
         voiceBtn.classList.remove('recording');
         voiceStatus.textContent = 'Tap to speak';
     });
-
-    recognition.addEventListener('error', (e) => {
+    recognition.addEventListener('error', e => {
         isRecording = false;
         voiceBtn.classList.remove('recording');
         voiceStatus.textContent = e.error === 'not-allowed' ? 'Microphone access denied' : `Error: ${e.error}`;
@@ -166,27 +161,77 @@ function toggleRecording() {
     }
 }
 
+// ── Data layer ──
+
+// Returns the full log, preferring the server and falling back to localStorage cache.
+async function loadLog() {
+    if (settings.tunnelUrl) {
+        try {
+            const res = await fetch(`${settings.tunnelUrl}/log`);
+            if (res.ok) {
+                const data = await res.json();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                return data;
+            }
+        } catch { /* fall through */ }
+    }
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+    catch { return {}; }
+}
+
+// Adds a single entry to the server (and updates the localStorage cache).
+async function saveEntry(date, entry) {
+    if (settings.tunnelUrl) {
+        const res = await fetch(`${settings.tunnelUrl}/log`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date, entry })
+        });
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+    }
+
+    // Keep localStorage in sync as a cache
+    const log = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    if (!log[date]) log[date] = [];
+    log[date].push(entry);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
+}
+
+// Removes an entry from the server (and updates the localStorage cache).
+async function removeEntry(date, id) {
+    if (settings.tunnelUrl) {
+        await fetch(`${settings.tunnelUrl}/log/${date}/${id}`, { method: 'DELETE' });
+    }
+
+    const log = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    if (log[date]) {
+        log[date] = log[date].filter(e => e.id !== id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
+    }
+}
+
 // ── Meal logging ──
 
 async function handleLogMeal() {
     const text = mealInput.value.trim();
-    if (!text) {
-        showError('Please describe what you ate first.');
-        return;
-    }
-    if (!settings.tunnelUrl) {
-        showError('No tunnel URL set. Open Settings and paste your Cloudflare tunnel URL.');
-        return;
-    }
+    if (!text) { showError('Please describe what you ate first.'); return; }
+    if (!settings.tunnelUrl) { showError('No tunnel URL set. Open Settings and paste your Cloudflare tunnel URL.'); return; }
 
     clearError();
     setLoading(true);
 
     try {
         const result = await callOllama(text);
-        addLogEntry(result);
+        const entry = {
+            id: Date.now(),
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            items: result.items,
+            total: result.total_calories,
+            notes: result.notes || ''
+        };
+        await saveEntry(getTodayKey(), entry);
         mealInput.value = '';
-        renderLog();
+        await refreshView();
     } catch (err) {
         showError(err.message);
     } finally {
@@ -194,13 +239,17 @@ async function handleLogMeal() {
     }
 }
 
+async function deleteLogEntry(date, id) {
+    await removeEntry(date, id);
+    await refreshView();
+}
+
 async function callOllama(mealDescription) {
     const model = settings.model || 'llama3.2';
-    const url = `${settings.tunnelUrl}/api/chat`;
 
     let response;
     try {
-        response = await fetch(url, {
+        response = await fetch(`${settings.tunnelUrl}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -213,114 +262,70 @@ async function callOllama(mealDescription) {
             })
         });
     } catch {
-        throw new Error(
-            'Could not reach your home PC. Check that Ollama is running and your Cloudflare tunnel is active, then update the URL in Settings.'
-        );
+        throw new Error('Could not reach your home PC. Check that the server is running and the tunnel is active.');
     }
 
-    if (!response.ok) {
-        throw new Error(`Ollama returned an error (HTTP ${response.status}). Check the model name in Settings.`);
-    }
+    if (!response.ok) throw new Error(`Ollama error (HTTP ${response.status}). Check the model name in Settings.`);
 
     const data = await response.json();
     const raw = data?.message?.content ?? '';
     const cleaned = raw.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
 
     let parsed;
-    try {
-        parsed = JSON.parse(cleaned);
-    } catch {
-        throw new Error(
-            `The model returned text that isn't valid JSON. Try a different model or simplify your description.\n\nModel response: "${cleaned.slice(0, 200)}"`
-        );
+    try { parsed = JSON.parse(cleaned); }
+    catch {
+        throw new Error(`The model returned invalid JSON. Try rephrasing.\n\nResponse: "${cleaned.slice(0, 200)}"`);
     }
 
     if (!Array.isArray(parsed.items) || typeof parsed.total_calories !== 'number') {
-        throw new Error('The model response was missing expected fields. Try rephrasing or switching to a more capable model.');
+        throw new Error('Unexpected response format. Try a different model.');
     }
 
     return parsed;
 }
 
-// ── Log storage ──
+// ── View ──
 
-function getTodayKey() {
-    return new Date().toISOString().slice(0, 10);
+async function refreshView() {
+    const log = await loadLog();
+    renderStreak(log);
+    renderTodayLog(log);
 }
 
-function loadLog() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-    } catch {
-        return {};
-    }
-}
-
-function addLogEntry(calorieData) {
-    const log = loadLog();
-    const today = getTodayKey();
-    if (!log[today]) log[today] = [];
-
-    log[today].push({
-        id: Date.now(),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        items: calorieData.items,
-        total: calorieData.total_calories,
-        notes: calorieData.notes || ''
-    });
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
-}
-
-function deleteLogEntry(id) {
-    const log = loadLog();
-    const today = getTodayKey();
-    if (log[today]) {
-        log[today] = log[today].filter(e => e.id !== id);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
-    }
-    renderLog();
-}
-
-// ── Streak ──
-
-function renderStreak() {
-    const log = loadLog();
-    const today = getTodayKey();
+function renderStreak(log) {
+    const today     = getTodayKey();
     const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
 
     const sortedDates = Object.keys(log)
-        .filter(d => log[d].length > 0 && log[d].some(e => e.total > 0))
+        .filter(d => (log[d] || []).some(e => e.total > 0))
         .sort();
 
-    const streak = calcStreak(sortedDates);
-    const loggedToday = sortedDates.includes(today);
-    const loggedYesterday = sortedDates.includes(yesterday);
-    const hasStreak = streak > 0;
+    const streak       = calcStreak(sortedDates);
+    const loggedToday  = sortedDates.includes(today);
+    const hasStreak    = streak > 0;
+    const atRisk       = !loggedToday && sortedDates.includes(yesterday) && hasStreak;
 
-    let state, title, sub;
+    let state, title, sub, displayCount;
 
     if (loggedToday && hasStreak) {
-        state = 'active';
+        state = 'active'; displayCount = streak;
         title = `${streak} day streak`;
         sub = streak === 1 ? 'Logged today — come back tomorrow!' : 'Logged today — keep it up!';
-    } else if (!loggedToday && loggedYesterday && hasStreak) {
-        state = 'risk';
+    } else if (atRisk) {
+        state = 'risk'; displayCount = streak;
         title = `${streak} day streak at risk`;
         sub = 'Log a meal today before midnight to keep it going!';
-    } else if (!loggedToday && hasStreak) {
-        state = 'none';
-        title = 'Streak ended';
-        sub = `Best was ${streak} days. Start a new one by logging today.`;
     } else {
-        state = 'none';
-        title = '0 day streak';
-        sub = 'Log every day to build your streak.';
+        state = 'none'; displayCount = 0;
+        title = hasStreak ? 'Streak ended' : '0 day streak';
+        sub = hasStreak
+            ? `Best was ${streak} days. Start a new one by logging today.`
+            : 'Log every day to build your streak.';
     }
 
     streakDisplay.innerHTML = `
         <div class="streak-bar state-${state}">
-            <span class="streak-count">${loggedToday && hasStreak ? streak : (state === 'risk' ? streak : 0)}</span>
+            <span class="streak-count">${displayCount}</span>
             <div class="streak-text">
                 <span class="streak-title">${escapeHtml(title)}</span>
                 <span class="streak-sub">${escapeHtml(sub)}</span>
@@ -329,16 +334,11 @@ function renderStreak() {
     `;
 }
 
-// ── Today rendering ──
-
-function renderLog() {
-    renderStreak();
-
-    const log = loadLog();
-    const today = getTodayKey();
+function renderTodayLog(log) {
+    const today   = getTodayKey();
     const entries = log[today] || [];
+    const total   = entries.reduce((s, e) => s + e.total, 0);
 
-    const total = entries.reduce((sum, e) => sum + e.total, 0);
     totalCaloriesEl.textContent = `${total} kcal`;
 
     if (entries.length === 0) {
@@ -366,10 +366,9 @@ function renderLog() {
     `).join('');
 }
 
-// ── Stats rendering ──
-
-function renderStats() {
-    const log = loadLog();
+async function renderStats() {
+    statsContent.innerHTML = '<div class="stats-empty">Loading...</div>';
+    const log = await loadLog();
 
     const dailyTotals = Object.entries(log)
         .map(([date, entries]) => ({
@@ -385,10 +384,10 @@ function renderStats() {
         return;
     }
 
-    const avg = Math.round(dailyTotals.reduce((s, d) => s + d.total, 0) / dailyTotals.length);
+    const avg     = Math.round(dailyTotals.reduce((s, d) => s + d.total, 0) / dailyTotals.length);
     const highest = dailyTotals.reduce((m, d) => d.total > m.total ? d : m);
-    const lowest = dailyTotals.reduce((m, d) => d.total < m.total ? d : m);
-    const streak = calcStreak(dailyTotals.map(d => d.date));
+    const lowest  = dailyTotals.reduce((m, d) => d.total < m.total ? d : m);
+    const streak  = calcStreak(dailyTotals.map(d => d.date));
 
     statsContent.innerHTML = `
         <div class="stat-cards">
@@ -422,9 +421,7 @@ function renderStats() {
 
         <div class="chart-card">
             <h3>Last ${Math.min(dailyTotals.length, 14)} days</h3>
-            <div class="chart-wrap">
-                ${buildChart(dailyTotals, avg)}
-            </div>
+            <div class="chart-wrap">${buildChart(dailyTotals, avg)}</div>
         </div>
 
         <div class="history-card">
@@ -441,71 +438,65 @@ function renderStats() {
 }
 
 function buildChart(dailyTotals, avg) {
-    const recent = dailyTotals.slice(-14);
-    const svgW = 540;
-    const svgH = 190;
-    const padL = 8;
-    const padR = 8;
-    const padTop = 24;
-    const padBottom = 32;
+    const recent   = dailyTotals.slice(-14);
+    const svgW     = 540, svgH = 190;
+    const padL     = 8, padR = 8, padTop = 24, padBottom = 32;
     const barAreaH = svgH - padTop - padBottom;
     const barAreaW = svgW - padL - padR;
-    const slot = barAreaW / recent.length;
-    const barW = Math.max(Math.floor(slot * 0.6), 4);
-    const maxVal = Math.max(...recent.map(d => d.total), avg * 1.1);
-
-    const avgY = padTop + barAreaH - Math.round((avg / maxVal) * barAreaH);
+    const slot     = barAreaW / recent.length;
+    const barW     = Math.max(Math.floor(slot * 0.6), 4);
+    const maxVal   = Math.max(...recent.map(d => d.total), avg * 1.1);
+    const avgY     = padTop + barAreaH - Math.round((avg / maxVal) * barAreaH);
 
     const bars = recent.map((d, i) => {
-        const barH = Math.max(Math.round((d.total / maxVal) * barAreaH), 2);
-        const x = padL + i * slot + (slot - barW) / 2;
-        const y = padTop + barAreaH - barH;
-        const labelDate = `${parseInt(d.date.slice(8))}/${parseInt(d.date.slice(5, 7))}`;
-        const isToday = d.date === getTodayKey();
-
+        const barH  = Math.max(Math.round((d.total / maxVal) * barAreaH), 2);
+        const x     = padL + i * slot + (slot - barW) / 2;
+        const y     = padTop + barAreaH - barH;
+        const label = `${parseInt(d.date.slice(8))}/${parseInt(d.date.slice(5, 7))}`;
+        const today = d.date === getTodayKey();
         return `
             <rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3"
-                  fill="${isToday ? 'var(--green-dark)' : 'var(--green)'}" opacity="${isToday ? '1' : '0.75'}"/>
-            <text x="${x + barW / 2}" y="${y - 5}" text-anchor="middle"
-                  font-size="9" fill="var(--text-muted)" font-family="inherit">${d.total >= 1000 ? Math.round(d.total / 100) / 10 + 'k' : d.total}</text>
-            <text x="${x + barW / 2}" y="${svgH - padBottom + 14}" text-anchor="middle"
-                  font-size="9" fill="${isToday ? 'var(--green-dark)' : 'var(--text-muted)'}"
-                  font-weight="${isToday ? '600' : '400'}" font-family="inherit">${labelDate}</text>
+                  fill="${today ? 'var(--green-dark)' : 'var(--green)'}" opacity="${today ? 1 : 0.75}"/>
+            <text x="${x + barW / 2}" y="${y - 5}" text-anchor="middle" font-size="9"
+                  fill="var(--text-muted)" font-family="inherit">
+                ${d.total >= 1000 ? (Math.round(d.total / 100) / 10) + 'k' : d.total}
+            </text>
+            <text x="${x + barW / 2}" y="${svgH - padBottom + 14}" text-anchor="middle" font-size="9"
+                  fill="${today ? 'var(--green-dark)' : 'var(--text-muted)'}"
+                  font-weight="${today ? 600 : 400}" font-family="inherit">${label}</text>
         `;
     });
 
-    const avgLine = `
+    return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;display:block;overflow:visible">
         <line x1="${padL}" y1="${avgY}" x2="${svgW - padR}" y2="${avgY}"
               stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"/>
-        <text x="${svgW - padR - 2}" y="${avgY - 4}" text-anchor="end"
-              font-size="8" fill="var(--text-muted)" font-family="inherit">avg</text>
-    `;
-
-    return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;display:block;overflow:visible">
-        ${avgLine}
+        <text x="${svgW - padR - 2}" y="${avgY - 4}" text-anchor="end" font-size="8"
+              fill="var(--text-muted)" font-family="inherit">avg</text>
         ${bars.join('')}
     </svg>`;
 }
 
+// ── Helpers ──
+
 function calcStreak(sortedDates) {
-    if (sortedDates.length === 0) return 0;
-    const today = getTodayKey();
+    if (!sortedDates.length) return 0;
+    const today     = getTodayKey();
     const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
-    const last = sortedDates[sortedDates.length - 1];
+    const last      = sortedDates[sortedDates.length - 1];
     if (last !== today && last !== yesterday) return 0;
 
     let streak = 1;
     for (let i = sortedDates.length - 2; i >= 0; i--) {
-        const curr = new Date(sortedDates[i + 1]);
-        const prev = new Date(sortedDates[i]);
-        const diff = (curr - prev) / 864e5;
+        const diff = (new Date(sortedDates[i + 1]) - new Date(sortedDates[i])) / 864e5;
         if (diff === 1) streak++;
         else break;
     }
     return streak;
 }
 
-// ── UI helpers ──
+function getTodayKey() {
+    return new Date().toISOString().slice(0, 10);
+}
 
 function setLoading(on) {
     loadingEl.classList.toggle('hidden', !on);
@@ -524,24 +515,18 @@ function clearError() {
 }
 
 function formatDate(date) {
-    return date.toLocaleDateString('en-GB', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-    });
+    return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function formatShortDate(isoDate) {
     const [y, m, d] = isoDate.split('-');
-    return new Date(y, m - 1, d).toLocaleDateString('en-GB', {
-        day: 'numeric', month: 'short', year: 'numeric'
-    });
+    return new Date(y, m - 1, d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function escapeHtml(str) {
     return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // ── Start ──

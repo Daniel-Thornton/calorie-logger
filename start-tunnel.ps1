@@ -1,24 +1,44 @@
 # Run this script on your home PC before using the calorie logger away from home.
-# It starts Ollama with CORS enabled and opens a Cloudflare tunnel, then prints the URL to paste into the app.
 
-$model = "llama3.2"   # Change this to match the model you have pulled in Ollama
+$model = "llama3.2"   # Change to match the model you have pulled in Ollama
 
-# Set OLLAMA_ORIGINS permanently in Windows user environment
-[System.Environment]::SetEnvironmentVariable("OLLAMA_ORIGINS", "*", "User")
-$env:OLLAMA_ORIGINS = "*"
+# Check Node.js is available
+if (-not (Get-Command "node" -ErrorAction SilentlyContinue)) {
+    Write-Host ""
+    Write-Host "ERROR: Node.js is not installed." -ForegroundColor Red
+    Write-Host "Download and install it from https://nodejs.org (LTS version)" -ForegroundColor Red
+    Write-Host "Then run this script again." -ForegroundColor Red
+    exit 1
+}
+
+# Check cloudflared is present
+$cloudflared = Join-Path $PSScriptRoot "cloudflared-windows-amd64.exe"
+if (-not (Test-Path $cloudflared)) {
+    Write-Host ""
+    Write-Host "ERROR: cloudflared-windows-amd64.exe not found in this folder." -ForegroundColor Red
+    Write-Host "Place it in: $PSScriptRoot" -ForegroundColor Red
+    exit 1
+}
 
 Write-Host ""
 Write-Host "Stopping any existing Ollama processes..."
 taskkill /F /IM "ollama.exe" /T 2>$null
 taskkill /F /IM "ollama app.exe" /T 2>$null
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 2
 
-Write-Host "Starting Ollama with CORS enabled..."
+Write-Host "Starting Ollama..."
+$env:OLLAMA_ORIGINS = "*"
 Start-Process "ollama" -ArgumentList "serve" -WindowStyle Minimized -Environment @{ OLLAMA_ORIGINS = "*" }
-Start-Sleep -Seconds 4
+Start-Sleep -Seconds 3
 
 Write-Host "Pulling model if not already present..."
 & ollama pull $model
+
+Write-Host ""
+Write-Host "Starting local server (handles CORS + data storage)..."
+$serverScript = Join-Path $PSScriptRoot "server.js"
+Start-Process "node" -ArgumentList $serverScript -WindowStyle Minimized
+Start-Sleep -Seconds 2
 
 Write-Host ""
 Write-Host "Opening Cloudflare tunnel..."
@@ -28,11 +48,4 @@ Write-Host "the app Settings (gear icon) as the Cloudflare Tunnel URL."
 Write-Host "------------------------------------------------------------"
 Write-Host ""
 
-$cloudflared = Join-Path $PSScriptRoot "cloudflared-windows-amd64.exe"
-if (-not (Test-Path $cloudflared)) {
-    Write-Host "ERROR: cloudflared.exe not found in this folder." -ForegroundColor Red
-    Write-Host "Download it and place it in: $PSScriptRoot" -ForegroundColor Red
-    exit 1
-}
-
-& $cloudflared tunnel --url http://localhost:11434
+& $cloudflared tunnel --url http://localhost:8787
