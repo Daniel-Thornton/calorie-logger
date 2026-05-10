@@ -24,7 +24,7 @@ function saveLog(log) {
 
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin':  '*',
-    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age':       '86400'
 };
@@ -89,6 +89,19 @@ const server = http.createServer(async (req, res) => {
     // GET /log — full log
     if (pathname === '/log' && req.method === 'GET') {
         json(res, 200, loadLog());
+        return;
+    }
+
+    // PUT /log — replace entire log
+    if (pathname === '/log' && req.method === 'PUT') {
+        try {
+            const data = await readBody(req);
+            if (typeof data !== 'object' || Array.isArray(data)) throw new Error();
+            saveLog(data);
+            json(res, 200, { ok: true });
+        } catch {
+            json(res, 400, { error: 'Invalid log data.' });
+        }
         return;
     }
 

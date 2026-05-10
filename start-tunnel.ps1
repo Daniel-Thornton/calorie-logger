@@ -21,9 +21,19 @@ if (-not (Test-Path $cloudflared)) {
 }
 
 Write-Host ""
-Write-Host "Stopping any existing Ollama processes..."
+Write-Host "Stopping any existing processes..."
 taskkill /F /IM "ollama.exe" /T 2>$null
 taskkill /F /IM "ollama app.exe" /T 2>$null
+
+# Kill whatever is on port 8787 (the old Node server)
+$conn = netstat -ano | Select-String "8787" | Select-String "LISTENING"
+if ($conn) {
+    $oldPid = ($conn -split '\s+')[-1].Trim()
+    if ($oldPid -match '^\d+$') {
+        taskkill /F /PID $oldPid 2>$null
+        Write-Host "Stopped old server (PID $oldPid)"
+    }
+}
 Start-Sleep -Seconds 2
 
 Write-Host "Starting Ollama..."

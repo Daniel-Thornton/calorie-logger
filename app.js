@@ -78,6 +78,11 @@ function setupEventListeners() {
     settingsBtn.addEventListener('click', openSettings);
     saveSettingsBtn.addEventListener('click', () => { persistSettings(); closeSettings(); });
     closeSettingsBtn.addEventListener('click', closeSettings);
+    document.getElementById('download-log').addEventListener('click', downloadLog);
+    document.getElementById('upload-log').addEventListener('change', e => {
+        if (e.target.files[0]) uploadLog(e.target.files[0]);
+        e.target.value = '';
+    });
     settingsModal.addEventListener('click', e => { if (e.target === settingsModal) closeSettings(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
 
@@ -282,6 +287,46 @@ async function callOllama(mealDescription) {
     }
 
     return parsed;
+}
+
+// ── Import / Export ──
+
+async function downloadLog() {
+    const log = await loadLog();
+    const blob = new Blob([JSON.stringify(log, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `calorie-log-${getTodayKey()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+async function uploadLog(file) {
+    let data;
+    try {
+        data = JSON.parse(await file.text());
+    } catch {
+        showError('Could not read file — make sure it is a valid JSON log.');
+        return;
+    }
+
+    if (typeof data !== 'object' || Array.isArray(data)) {
+        showError('Unrecognised format — file must be a calorie log JSON object.');
+        return;
+    }
+
+    if (settings.tunnelUrl) {
+        const res = await fetch(`${settings.tunnelUrl}/log`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) { showError('Failed to upload log to server.'); return; }
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    closeSettings();
+    await refreshView();
 }
 
 // ── View ──

@@ -158,6 +158,25 @@ textarea {
     gap: 10px;
 }
 
+.modal-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0 0;
+}
+
+.modal-section-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.upload-label {
+    cursor: pointer;
+    text-align: center;
+}
+
 /* ── Buttons ── */
 
 .btn {
