@@ -37,8 +37,9 @@ const settingsBtn    = document.getElementById('settings-btn');
 const settingsModal  = document.getElementById('settings-modal');
 const tunnelUrlInput = document.getElementById('tunnel-url');
 const modelNameInput = document.getElementById('model-name');
-const saveSettingsBtn= document.getElementById('save-settings');
-const closeSettingsBtn=document.getElementById('close-settings');
+const saveSettingsBtn  = document.getElementById('save-settings');
+const closeSettingsBtn = document.getElementById('close-settings');
+const cancelSettingsBtn= document.getElementById('cancel-settings');
 const statsContent   = document.getElementById('stats-content');
 const streakDisplay  = document.getElementById('streak-display');
 
@@ -78,6 +79,7 @@ function setupEventListeners() {
     settingsBtn.addEventListener('click', openSettings);
     saveSettingsBtn.addEventListener('click', () => { persistSettings(); closeSettings(); });
     closeSettingsBtn.addEventListener('click', closeSettings);
+    cancelSettingsBtn.addEventListener('click', closeSettings);
     document.getElementById('download-log').addEventListener('click', downloadLog);
     document.getElementById('upload-log').addEventListener('change', e => {
         if (e.target.files[0]) uploadLog(e.target.files[0]);
@@ -433,12 +435,24 @@ async function renderStats() {
     const highest = dailyTotals.reduce((m, d) => d.total > m.total ? d : m);
     const lowest  = dailyTotals.reduce((m, d) => d.total < m.total ? d : m);
     const streak  = calcStreak(dailyTotals.map(d => d.date));
+    const target  = settings.targetKcal || 0;
+    const mood    = target > 0 ? getMoodForAvg(avg, target) : null;
 
     statsContent.innerHTML = `
         <div class="stat-cards">
-            <div class="stat-card">
-                <div class="stat-card-value">${avg.toLocaleString()}</div>
-                <div class="stat-card-label">Avg kcal / day</div>
+            <div class="stat-card stat-card-avg">
+                <div class="stat-avg-main">
+                    <div class="stat-card-value">${avg.toLocaleString()}</div>
+                    <div class="stat-card-label">Avg kcal / day</div>
+                    <div class="stat-avg-target-row">
+                        <span class="stat-avg-target-label">Target:</span>
+                        <input type="number" id="target-kcal-input" class="stat-avg-target-input"
+                               value="${target || ''}" placeholder="2000" min="0" max="99999">
+                        <span class="stat-avg-target-unit">kcal</span>
+                    </div>
+                    <div class="stat-avg-mood-label">${mood ? escapeHtml(mood.label) : 'Set a target to see your mood'}</div>
+                </div>
+                ${mood ? `<img class="stat-mood-icon" src="icons/moods/${mood.icon}" alt="${escapeHtml(mood.label)}" title="${escapeHtml(mood.label)}">` : ''}
             </div>
             <div class="stat-card">
                 <div class="stat-card-value">${dailyTotals.length}</div>
@@ -480,6 +494,26 @@ async function renderStats() {
             `).join('')}
         </div>
     `;
+
+    const targetInput = document.getElementById('target-kcal-input');
+    if (targetInput) {
+        const saveTarget = () => {
+            settings.targetKcal = parseInt(targetInput.value) || 0;
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            renderStats();
+        };
+        targetInput.addEventListener('change', saveTarget);
+        targetInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveTarget(); } });
+    }
+}
+
+function getMoodForAvg(avg, target) {
+    const pct = Math.abs(avg - target) / target;
+    if (pct <= 0.05) return { icon: 'pilot_01_happy.png',          label: 'On target!' };
+    if (pct <= 0.15) return { icon: 'pilot_02_slightly-happy.png', label: 'Close to target' };
+    if (pct <= 0.30) return { icon: 'pilot_03_straight-faced.png', label: 'Somewhat off target' };
+    if (pct <= 0.50) return { icon: 'pilot_04_slightly-sad.png',   label: 'Off target' };
+    return                   { icon: 'pilot_05_sad.png',            label: 'Far from target' };
 }
 
 function buildChart(dailyTotals, avg) {
@@ -500,14 +534,14 @@ function buildChart(dailyTotals, avg) {
         const label = `${parseInt(d.date.slice(8))}/${parseInt(d.date.slice(5, 7))}`;
         const today = d.date === getTodayKey();
         return `
-            <rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3"
-                  fill="${today ? 'var(--green-dark)' : 'var(--green)'}" opacity="${today ? 1 : 0.75}"/>
+            <rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="0"
+                  fill="${today ? '#000080' : '#1084d0'}" opacity="${today ? 1 : 0.8}"/>
             <text x="${x + barW / 2}" y="${y - 5}" text-anchor="middle" font-size="9"
                   fill="var(--text-muted)" font-family="inherit">
                 ${d.total >= 1000 ? (Math.round(d.total / 100) / 10) + 'k' : d.total}
             </text>
             <text x="${x + barW / 2}" y="${svgH - padBottom + 14}" text-anchor="middle" font-size="9"
-                  fill="${today ? 'var(--green-dark)' : 'var(--text-muted)'}"
+                  fill="${today ? '#000080' : 'var(--text-muted)'}"
                   font-weight="${today ? 600 : 400}" font-family="inherit">${label}</text>
         `;
     });

@@ -10,49 +10,62 @@
     <div class="app">
 
         <header>
-            <h1>Calorie Logger</h1>
-            <button id="settings-btn" class="icon-btn" aria-label="Settings" title="Settings">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
-            </button>
+            <div class="header-left">
+                <img src="icons/logo.png" class="header-logo" alt="">
+                <span class="header-title">Calorie Logger</span>
+            </div>
+            <div class="header-right">
+                <button id="settings-btn" class="icon-btn" aria-label="Settings" title="Settings">
+                    <img src="icons/settings.png" alt="Settings">
+                </button>
+            </div>
         </header>
 
         <!-- Settings Modal -->
         <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Settings">
             <div class="modal-content">
-                <h2>Settings</h2>
-                <label for="tunnel-url">
-                    Cloudflare Tunnel URL
-                    <span class="label-hint">Paste the URL from your tunnel session at home</span>
-                    <input type="url" id="tunnel-url" placeholder="https://xxxx-xxxx.trycloudflare.com" autocomplete="off" spellcheck="false">
-                </label>
-                <label for="model-name">
-                    Ollama Model
-                    <span class="label-hint">Must be pulled on your home PC</span>
-                    <input type="text" id="model-name" placeholder="llama3.2" autocomplete="off" spellcheck="false">
-                </label>
-                <div class="modal-actions">
-                    <button id="save-settings" class="btn primary">Save</button>
-                    <button id="close-settings" class="btn">Cancel</button>
+                <div class="modal-titlebar">
+                    <span class="modal-titlebar-title">Settings</span>
+                    <button id="close-settings" class="modal-titlebar-close" aria-label="Close">&#x2715;</button>
                 </div>
-                <hr class="modal-divider">
-                <p class="modal-section-label">Data</p>
-                <div class="modal-actions">
-                    <button id="download-log" class="btn full-width">Download log (JSON)</button>
-                    <label class="btn full-width upload-label" for="upload-log">
-                        Upload log (JSON)
-                        <input type="file" id="upload-log" accept=".json" style="display:none">
+                <div class="modal-body">
+                    <label for="tunnel-url">
+                        Cloudflare Tunnel URL
+                        <span class="label-hint">Paste the URL from your tunnel session at home</span>
+                        <input type="url" id="tunnel-url" placeholder="https://xxxx-xxxx.trycloudflare.com" autocomplete="off" spellcheck="false">
                     </label>
+                    <label for="model-name">
+                        Ollama Model
+                        <span class="label-hint">Must be pulled on your home PC</span>
+                        <input type="text" id="model-name" placeholder="llama3.2" autocomplete="off" spellcheck="false">
+                    </label>
+                    <div class="modal-actions">
+                        <button id="save-settings" class="btn primary">Save</button>
+                        <button id="cancel-settings" class="btn">Cancel</button>
+                    </div>
+                    <hr class="modal-divider">
+                    <p class="modal-section-label">Data</p>
+                    <div class="modal-actions">
+                        <button id="download-log" class="btn full-width">Download log (JSON)</button>
+                        <label class="btn full-width upload-label" for="upload-log">
+                            Upload log (JSON)
+                            <input type="file" id="upload-log" accept=".json" style="display:none">
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Tab navigation -->
         <nav class="tab-nav" role="tablist">
-            <button class="tab-btn active" data-tab="today" role="tab" aria-selected="true">Today</button>
-            <button class="tab-btn" data-tab="stats" role="tab" aria-selected="false">Statistics</button>
+            <button class="tab-btn active" data-tab="today" role="tab" aria-selected="true">
+                <img src="icons/calendar-5.png" alt="">
+                Today
+            </button>
+            <button class="tab-btn" data-tab="stats" role="tab" aria-selected="false">
+                <img src="icons/statistics.png" alt="">
+                Statistics
+            </button>
         </nav>
 
         <!-- ── TODAY TAB ── -->
@@ -70,12 +83,7 @@
             <section class="input-section">
                 <div class="voice-row">
                     <button id="voice-btn" class="voice-btn" aria-label="Record voice input" title="Record voice">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" y1="19" x2="12" y2="23"/>
-                            <line x1="8" y1="23" x2="16" y2="23"/>
-                        </svg>
+                        <img src="icons/microphone-0.png" alt="Record">
                     </button>
                     <span id="voice-status">Tap to speak</span>
                 </div>
@@ -97,9 +105,7 @@
 
         <!-- ── STATS TAB ── -->
         <div id="tab-stats" class="tab-panel hidden">
-
             <div id="stats-content"></div>
-
         </div>
 
     </div>
