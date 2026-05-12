@@ -473,10 +473,6 @@ async function renderStats() {
                 <div class="stat-card-value">${streak}</div>
                 <div class="stat-card-label">Day streak</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-card-value">${(dailyTotals.reduce((s, d) => s + d.total, 0) / 1000).toFixed(0)}k</div>
-                <div class="stat-card-label">Total kcal logged</div>
-            </div>
         </div>
 
         <div class="chart-card">
