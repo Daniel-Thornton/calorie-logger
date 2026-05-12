@@ -40,6 +40,7 @@ const modelNameInput = document.getElementById('model-name');
 const saveSettingsBtn  = document.getElementById('save-settings');
 const closeSettingsBtn = document.getElementById('close-settings');
 const cancelSettingsBtn= document.getElementById('cancel-settings');
+const targetKcalInput  = document.getElementById('target-kcal');
 const statsContent   = document.getElementById('stats-content');
 const streakDisplay  = document.getElementById('streak-display');
 
@@ -68,8 +69,9 @@ function loadSettings() {
 }
 
 function persistSettings() {
-    settings.tunnelUrl = tunnelUrlInput.value.trim().replace(/\/+$/, '');
-    settings.model = modelNameInput.value.trim() || 'llama3.2';
+    settings.tunnelUrl  = tunnelUrlInput.value.trim().replace(/\/+$/, '');
+    settings.model      = modelNameInput.value.trim() || 'llama3.2';
+    settings.targetKcal = parseInt(targetKcalInput.value) || 0;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
@@ -102,8 +104,9 @@ function setupEventListeners() {
 }
 
 function openSettings() {
-    tunnelUrlInput.value = settings.tunnelUrl || '';
-    modelNameInput.value = settings.model || 'llama3.2';
+    tunnelUrlInput.value  = settings.tunnelUrl || '';
+    modelNameInput.value  = settings.model || 'llama3.2';
+    targetKcalInput.value = settings.targetKcal || '';
     settingsModal.classList.remove('hidden');
     tunnelUrlInput.focus();
 }
@@ -444,15 +447,13 @@ async function renderStats() {
                 <div class="stat-avg-main">
                     <div class="stat-card-value">${avg.toLocaleString()}</div>
                     <div class="stat-card-label">Avg kcal / day</div>
-                    <div class="stat-avg-target-row">
-                        <span class="stat-avg-target-label">Target:</span>
-                        <input type="number" id="target-kcal-input" class="stat-avg-target-input"
-                               value="${target || ''}" placeholder="2000" min="0" max="99999">
-                        <span class="stat-avg-target-unit">kcal</span>
-                    </div>
-                    <div class="stat-avg-mood-label">${mood ? escapeHtml(mood.label) : 'Set a target to see your mood'}</div>
+                    <div class="stat-card-sub">${target > 0 ? `Target: ${target.toLocaleString()} kcal` : 'No target set'}</div>
                 </div>
-                ${mood ? `<img class="stat-mood-icon" src="icons/moods/${mood.icon}" alt="${escapeHtml(mood.label)}" title="${escapeHtml(mood.label)}">` : ''}
+                ${mood ? `
+                <div class="stat-mood-block">
+                    <img class="stat-mood-icon" src="icons/moods/${mood.icon}" alt="${escapeHtml(mood.label)}" title="${escapeHtml(mood.label)}">
+                    <div class="stat-avg-mood-label">${escapeHtml(mood.label)}</div>
+                </div>` : ''}
             </div>
             <div class="stat-card">
                 <div class="stat-card-value">${dailyTotals.length}</div>
@@ -495,16 +496,6 @@ async function renderStats() {
         </div>
     `;
 
-    const targetInput = document.getElementById('target-kcal-input');
-    if (targetInput) {
-        const saveTarget = () => {
-            settings.targetKcal = parseInt(targetInput.value) || 0;
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-            renderStats();
-        };
-        targetInput.addEventListener('change', saveTarget);
-        targetInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveTarget(); } });
-    }
 }
 
 function getMoodForAvg(avg, target) {

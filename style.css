@@ -226,7 +226,7 @@ textarea {
     border-left:   2px solid var(--bsh);
     border-right:  2px solid var(--bhi);
     border-bottom: 2px solid var(--bhi);
-    font-size: 13px;
+    font-size: 16px;
     font-family: inherit;
     color: var(--text);
     background: var(--field-bg);
@@ -236,15 +236,17 @@ textarea {
 }
 
 input[type="number"] {
+    width: 100%;
     padding: 3px 6px;
     border-top:    2px solid var(--bsh);
     border-left:   2px solid var(--bsh);
     border-right:  2px solid var(--bhi);
     border-bottom: 2px solid var(--bhi);
-    font-size: 13px;
+    font-size: 16px;
     font-family: inherit;
     color: var(--text);
     background: var(--field-bg);
+    margin-top: 2px;
     outline: none;
 }
 
@@ -282,6 +284,14 @@ input:focus, textarea:focus {
     border-left:   2px solid var(--bdk);
     border-right:  2px solid var(--bhi);
     border-bottom: 2px solid var(--bhi);
+}
+
+.btn img {
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
+    display: block;
+    flex-shrink: 0;
 }
 
 .btn.primary {
@@ -696,44 +706,26 @@ input:focus, textarea:focus {
 
 .stat-avg-main { flex: 1; }
 
-.stat-avg-target-row {
+.stat-mood-block {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 5px;
-    margin-top: 6px;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
-.stat-avg-target-label {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-weight: normal;
-    white-space: nowrap;
-}
-
-input.stat-avg-target-input {
-    width: 68px;
-    padding: 2px 4px;
-    font-size: 12px;
-    margin-top: 0;
-}
-
-.stat-avg-target-unit {
-    font-size: 12px;
-    color: var(--text-muted);
-    white-space: nowrap;
+.stat-mood-icon {
+    width: 52px;
+    height: auto;
+    image-rendering: pixelated;
+    display: block;
 }
 
 .stat-avg-mood-label {
     font-size: 11px;
     color: var(--text-muted);
-    margin-top: 4px;
-}
-
-.stat-mood-icon {
-    width: 52px;
-    height: 52px;
-    image-rendering: pixelated;
-    flex-shrink: 0;
+    text-align: center;
+    white-space: nowrap;
 }
 
 /* ── Chart ── */

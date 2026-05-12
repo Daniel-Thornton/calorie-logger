@@ -39,6 +39,11 @@
                         <span class="label-hint">Must be pulled on your home PC</span>
                         <input type="text" id="model-name" placeholder="llama3.2" autocomplete="off" spellcheck="false">
                     </label>
+                    <label for="target-kcal">
+                        Daily Calorie Target
+                        <span class="label-hint">Used to show your mood on the statistics page</span>
+                        <input type="number" id="target-kcal" placeholder="2000" min="0" max="99999">
+                    </label>
                     <div class="modal-actions">
                         <button id="save-settings" class="btn primary">Save</button>
                         <button id="cancel-settings" class="btn">Cancel</button>
@@ -88,7 +93,10 @@
                     <span id="voice-status">Tap to speak</span>
                 </div>
                 <textarea id="meal-input" placeholder="Describe what you ate — e.g. two scrambled eggs, toast with butter, and a coffee with milk" rows="4" aria-label="Meal description"></textarea>
-                <button id="log-btn" class="btn primary full-width">Log Meal</button>
+                <button id="log-btn" class="btn primary full-width">
+                    <img src="icons/log_meal.png" alt="">
+                    Log Meal
+                </button>
             </section>
 
             <div id="loading" class="loading hidden" aria-live="polite">
